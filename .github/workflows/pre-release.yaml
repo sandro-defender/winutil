@@ -50,12 +50,12 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:CERTIFICATE_BASE64)) { throw "CERTIFICATE_BASE64 is required to sign WinUtilLauncher.exe." }
           $certificatePath = Join-Path $env:RUNNER_TEMP "winutil-signing.pfx"
           [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
-          $compileArguments = @('-Sign', '-CertificatePath', $certificatePath)
+          $compileParameters = @{ Sign = $true; CertificatePath = $certificatePath }
           if (-not [string]::IsNullOrWhiteSpace($env:CERTIFICATE_PASSWORD)) {
-            $compileArguments += @('-CertificatePassword', $env:CERTIFICATE_PASSWORD)
+            $compileParameters.CertificatePassword = ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -AsPlainText -Force
           }
           Set-ExecutionPolicy Bypass -Scope Process -Force
-          ./compiler/Compile.ps1 @compileArguments
+          ./compiler/Compile.ps1 @compileParameters
         continue-on-error: false # Directly fail the job on error, removing the need for a separate check
 
       - name: Create Pull Request for Updated Docs and JSON Links
