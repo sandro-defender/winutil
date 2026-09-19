@@ -15,6 +15,7 @@ jobs:
       version: ${{ steps.extract_version.outputs.version }}
     env:
       CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+      CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
@@ -49,7 +50,12 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:CERTIFICATE_BASE64)) { throw "CERTIFICATE_BASE64 is required to sign WinUtilLauncher.exe." }
           $certificatePath = Join-Path $env:RUNNER_TEMP "winutil-signing.pfx"
           [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
-          Set-ExecutionPolicy Bypass -Scope Process -Force; ./compiler/Compile.ps1 -Sign -CertificatePath $certificatePath
+          $compileArguments = @('-Sign', '-CertificatePath', $certificatePath)
+          if (-not [string]::IsNullOrWhiteSpace($env:CERTIFICATE_PASSWORD)) {
+            $compileArguments += @('-CertificatePassword', $env:CERTIFICATE_PASSWORD)
+          }
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          ./compiler/Compile.ps1 @compileArguments
         continue-on-error: false # Directly fail the job on error, removing the need for a separate check
 
       - name: Create Pull Request for Updated Docs and JSON Links
