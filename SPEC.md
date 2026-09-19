@@ -16,11 +16,12 @@ WinUtil is a Windows PowerShell utility with a WPF interface. The repository is 
 - Tests: Pester tests under `pester/`.
 - Lint: PowerShell Script Analyzer with settings in `lint/PSScriptAnalyser.ps1`.
 - Docs: Astro + Starlight site under `docs/`, built independently of `Compile.ps1` (its own `package.json`/`node_modules`).
-- Release artifact: generated root `winutil.ps1`.
+- Release artifacts: generated `compiled/winutil.ps1` and `compiled/WinUtilLauncher.exe`.
 
 ### Repository Layout
 
-- `Compile.ps1`: build script that creates `winutil.ps1`.
+- `compiler/`: build scripts, launcher source, and manifest.
+- `compiled/`: ignored generated script and launcher output.
 - `scripts/start.ps1`: startup/bootstrap segment used at the beginning of the compiled script.
 - `scripts/main.ps1`: main entrypoint appended at the end of the compiled script.
 - `functions/public/`: public/UI-facing PowerShell functions.
@@ -51,7 +52,7 @@ WinUtil is a Windows PowerShell utility with a WPF interface. The repository is 
 
 ## Build Model
 
-`Compile.ps1` combines the repository sources into `winutil.ps1` in this order:
+`compiler/Compile.ps1` combines the repository sources into `compiled/winutil.ps1` in this order:
 
 1. Read `scripts/start.ps1` and replace `#{replaceme}` with the current `yy.MM.dd` build date.
 2. Append every file under `functions/` recursively.
@@ -60,7 +61,7 @@ WinUtil is a Windows PowerShell utility with a WPF interface. The repository is 
 5. Embed `xaml/inputXML.xaml` into `$inputXML`.
 6. Embed `tools/autounattend.xml` into `$WinUtilAutounattendXml`.
 7. Append `scripts/main.ps1`.
-8. Write the result to root `winutil.ps1`.
+8. Write the result to `compiled/winutil.ps1` and build the adjacent `WinUtilLauncher.exe` from the current Git tag, embedding the WinUtil logo.
 
 Because the final script is concatenated, code cannot rely on runtime module imports or source-relative dot-sourcing unless the compiled script will also contain the required code/data.
 
@@ -103,11 +104,11 @@ Because the final script is concatenated, code cannot rely on runtime module imp
 
 ## Testing And CI
 
-- `.\Compile.ps1` verifies the compiler can generate `winutil.ps1`.
-- `.\Compile.ps1 -Run` compiles and launches the generated utility for manual GUI verification.
+- `.\compiler\Compile.ps1` verifies the compiler can generate both release files.
+- `.\compiler\Compile.ps1 -Run` compiles and launches the generated utility for manual GUI verification.
 - Pester 5.8.0 runs the suite under `pester/*.Tests.ps1`. GitHub Actions (`unittests.yaml`) installs Pester 5.8.0 fresh and runs with `-CI`, which produces `testResults.xml` and exits non-zero on failure.
 - GitHub Actions also runs PowerShell Script Analyzer with `lint/PSScriptAnalyser.ps1` on every push.
-- The generated `winutil.ps1` may appear locally after compile. It remains ignored build output (see root `.gitignore`) and must not be committed.
+- Generated files appear under `compiled/` after compilation and must not be committed.
 - The manually triggered title-screen workflow compiles WinUtil from `main` and opens an image-only pull request when the generated composite changes. These pull requests require manual review. Failed runs retain diagnostics for 14 days.
 
 ## Release Artifact

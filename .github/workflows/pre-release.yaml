@@ -25,10 +25,31 @@ jobs:
           Set-Location tools
           ./devdocs-generator.ps1
 
-      - name: Compile project
+      - name: Set version from Git tag
+        id: extract_version
+        run: |
+          $version = (Get-Date -Format "yy.MM.dd")
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Create tag
+        id: create_tag
+        run: |
+          $tagExists = git tag -l $env:VERSION
+          if ($tagExists -eq "") {
+            git tag $env:VERSION
+            git push origin $env:VERSION
+          }
+        shell: pwsh
+
+      - name: Compile and sign release files
         shell: pwsh
         run: |
-          Set-ExecutionPolicy Bypass -Scope Process -Force; ./Compile.ps1
+          if ([string]::IsNullOrWhiteSpace($env:CERTIFICATE_BASE64)) { throw "CERTIFICATE_BASE64 is required to sign WinUtilLauncher.exe." }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "winutil-signing.pfx"
+          [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
+          Set-ExecutionPolicy Bypass -Scope Process -Force; ./compiler/Compile.ps1 -Sign -CertificatePath $certificatePath
         continue-on-error: false # Directly fail the job on error, removing the need for a separate check
 
       - name: Create Pull Request for Updated Docs and JSON Links
@@ -56,48 +77,22 @@ jobs:
           echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
           echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
 
-      - name: Set Version to Todays Date
-        id: extract_version
-        run: |
-          $version = (Get-Date -Format "yy.MM.dd")
-          echo "VERSION=$version" >> $env:GITHUB_ENV
-          echo "version=$version" >> $env:GITHUB_OUTPUT
-        shell: pwsh
-
-      - name: Create Tag
-        id: create_tag
-        run: |
-          $tagExists = git tag -l $env:VERSION
-          if ($tagExists -eq "") {
-            git tag $env:VERSION
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Failed to create tag $env:VERSION"
-              exit 1
-            }
-            git push origin $env:VERSION
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Failed to push tag $env:VERSION"
-              exit 1
-            }
-          } else {
-            Write-Host "Tag $env:VERSION already exists, skipping tag creation"
-          }
-        shell: pwsh
-
-      - name: Upload compiled script
+      - name: Upload release files
         uses: actions/upload-artifact@v7
         with:
-          name: winutil-ps1
-          path: ./winutil.ps1
+          name: winutil-release
+          path: |
+            ./compiled/winutil.ps1
+            ./compiled/WinUtilLauncher.exe
 
   release:
     needs: build-runspace
     runs-on: ubuntu-latest
     steps:
-      - name: Download compiled script
+      - name: Download release files
         uses: actions/download-artifact@v8
         with:
-          name: winutil-ps1
+          name: winutil-release
 
       - name: Set version from build job
         run: echo "VERSION=${{ needs.build-runspace.outputs.version }}" >> $GITHUB_ENV
@@ -137,7 +132,9 @@ jobs:
 
             ![GitHub Downloads (specific asset, specific tag)](https://img.shields.io/github/downloads/ChrisTitusTech/winutil/${{ env.VERSION }}/winutil.ps1)
           append_body: false
-          files: ./winutil.ps1
+          files: |
+            ./winutil.ps1
+            ./WinUtilLauncher.exe
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

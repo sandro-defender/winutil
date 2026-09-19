@@ -96,11 +96,11 @@ jobs:
       - name: Compile WinUtil
         run: |
           Set-ExecutionPolicy Bypass -Scope Process -Force
-          ./Compile.ps1
+          ./compiler/Compile.ps1
 
       - name: Launch WinUtil
         run: |
-          $scriptPath = Join-Path $env:GITHUB_WORKSPACE "winutil.ps1"
+          $scriptPath = Join-Path $env:GITHUB_WORKSPACE "compiled\winutil.ps1"
           $command = "& '$scriptPath'"
           $bytes = [Text.Encoding]::Unicode.GetBytes($command)
           $encodedCommand = [Convert]::ToBase64String($bytes)

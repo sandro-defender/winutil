@@ -15,8 +15,8 @@ jobs:
     - name: Checkout Sources
       uses: actions/checkout@v7
 
-    - name: Compile and Syntax check winutil.ps1
+    - name: Compile release files and syntax check winutil.ps1
       shell: pwsh
       run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force; ./Compile.ps1
+        Set-ExecutionPolicy Bypass -Scope Process -Force; ./compiler/Compile.ps1
       continue-on-error: false # Directly fail the job on error, removing the need for a separate check

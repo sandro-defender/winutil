@@ -4,6 +4,8 @@ Microsoft.PowerShell.ConsoleHost.dll
 
 winutil.exe.config
 winutil.ps1
+WinUtilLauncher.exe
+compiled/
 binary/
 testResults.xml
 

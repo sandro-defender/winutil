@@ -27,6 +27,10 @@ irm https://christitus.com/win | iex
 irm https://christitus.com/windev | iex
 ```
 
+### No-console launcher
+
+Download `WinUtilLauncher.exe` and `winutil.ps1` from the same release, keep them together, then double-click `WinUtilLauncher.exe`.
+
 ### How to open an admin terminal
 
 - **Start menu:** Right-click Start → *Windows PowerShell (Admin)* or *Terminal (Admin)*
